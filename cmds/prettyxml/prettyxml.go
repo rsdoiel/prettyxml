@@ -51,10 +51,10 @@ var (
 	//showLicense bool
 )
 
-type Element struct {
+type element struct {
 	Attr     []xml.Attr
 	XMLName  xml.Name
-	Children []Element `xml:",any"`
+	Children []element `xml:",any"`
 	Text     string    `xml:",chardata"`
 }
 
@@ -111,7 +111,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "%s", err)
 		os.Exit(1)
 	}
-	root := Element{}
+	root := element{}
 	_ = xml.Unmarshal(src, &root)
 	buf, _ := xml.MarshalIndent(root, "", "   ")
 	fmt.Fprintln(out, strings.Replace(string(buf), "&#xA;", "", -1))
