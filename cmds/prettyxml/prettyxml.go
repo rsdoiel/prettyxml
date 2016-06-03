@@ -43,7 +43,7 @@ import (
 	"strings"
 )
 
-const Version = "0.0.1"
+const version = "0.0.1"
 
 var (
 	showHelp    bool
@@ -77,12 +77,12 @@ func main() {
 		flag.VisitAll(func(f *flag.Flag) {
 			fmt.Printf("    -%s  (defaults to %s) %s\n", f.Name, f.DefValue, f.Usage)
 		})
-		fmt.Printf("\n\n Version %s\n", Version)
+		fmt.Printf("\n\n Version %s\n", version)
 		os.Exit(0)
 	}
 
 	if showVersion == true {
-		fmt.Printf(" Version %s\n", Version)
+		fmt.Printf(" Version %s\n", version)
 		os.Exit(0)
 	}
 
