@@ -1,83 +1,89 @@
+//
+// prettyxml.go - a quick hack to pretty print simple XML
+//
+// @author R. S. Doiel, <rsdoiel@gmail.com>
+//
 package main
 
 import (
-	"bytes"
 	"encoding/xml"
 	"flag"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
-	"path"
+	"strings"
 )
 
-const version = "0.0.0"
+const Version = "0.0.1"
 
 var (
 	showHelp    bool
 	showVersion bool
+	//showLicense bool
 )
 
-func formatXML(data []byte) ([]byte, error) {
-	b := &bytes.Buffer{}
-	decoder := xml.NewDecoder(bytes.NewReader(data))
-	encoder := xml.NewEncoder(b)
-	encoder.Indent("", "  ")
-	for {
-		token, err := decoder.Token()
-		if err == io.EOF {
-			encoder.Flush()
-			return b.Bytes(), nil
-		}
-		if err != nil {
-			return nil, err
-		}
-		err = encoder.EncodeToken(token)
-		if err != nil {
-			return nil, err
-		}
-	}
+type Element struct {
+	Attr     []xml.Attr
+	XMLName  xml.Name
+	Children []Element `xml:",any"`
+	Text     string    `xml:",chardata"`
 }
 
 func init() {
 	flag.BoolVar(&showHelp, "h", false, "display help information")
 	flag.BoolVar(&showVersion, "v", false, "display version information")
+	//flag.BoolVar(&showLicense, "l", false, "display license information")
 }
 
 func main() {
+	appname := os.Args[0]
 	flag.Parse()
-	if len(os.Args) < 2 || showHelp == true {
-		fmt.Fprintf(os.Stderr, `
- USAGE %s [OPTIONS] XML_FILENAME
+	args := flag.Args()
 
- Pretty print XML documents to standard out.
- 
- OPTIONS
+	if showHelp == true {
+		fmt.Fprintf(os.Stdout, `
+ USAGE: %s [OPTIONS] [IN_FILENAME] [OUT_FILENAME]
+`, appname)
 
-`, path.Base(os.Args[0]))
-		flag.PrintDefaults()
-		fmt.Fprintf(os.Stderr, "\nVersion %s\n", version)
-		if showHelp == true {
-			os.Exit(0)
-		}
-		os.Exit(1)
-	}
-	if showVersion == true {
-		fmt.Fprintf(os.Stderr, "Version %s\n", version)
+		flag.VisitAll(func(f *flag.Flag) {
+			fmt.Printf("    -%s  (defaults to %s) %s\n", f.Name, f.DefValue, f.Usage)
+		})
+		fmt.Printf("\n\n Version %s\n", Version)
 		os.Exit(0)
 	}
 
-	args := flag.Args()
-	for _, fname := range args {
-		buf, err := ioutil.ReadFile(fname)
+	if showVersion == true {
+		fmt.Printf(" Version %s\n", Version)
+		os.Exit(0)
+	}
+
+	var err error
+	in := os.Stdin
+	out := os.Stdout
+	if len(args) > 0 {
+		in, err = os.Open(args[0])
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "error %s, %s\n", fname, err)
+			fmt.Fprintf(os.Stderr, "%s", err)
 			os.Exit(1)
 		}
-		out, err := formatXML(buf)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "error %s, %s\n", fname, err)
-		}
-		fmt.Printf(`%s`, out)
+		defer in.Close()
 	}
+	if len(args) > 1 {
+		out, err = os.Create(args[1])
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%s", err)
+			os.Exit(1)
+		}
+		defer out.Close()
+	}
+
+	src, err := ioutil.ReadAll(in)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s", err)
+		os.Exit(1)
+	}
+	root := Element{}
+	_ = xml.Unmarshal(src, &root)
+	buf, _ := xml.MarshalIndent(root, "", "   ")
+	fmt.Fprintln(out, strings.Replace(string(buf), "&#xA;", "", -1))
 }
