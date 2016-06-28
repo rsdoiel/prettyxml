@@ -26,3 +26,6 @@ _testmain.go
 # Skip any compiled binaries in bin/*
 #
 bin/*
+dist/*
+*~
+*.swp
